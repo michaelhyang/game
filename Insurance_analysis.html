@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人保險保障盤點表 - 修正版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f4f8; color: #334155; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; background: white; border: 1px solid #cbd5e1; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; font-size: 0.8rem; vertical-align: middle; }
+        .stage-header { background-color: #1e293b; text-align: center; color: #ffffff; }
+        .risk-label { background-color: #f1f5f9; font-weight: bold; color: #1e293b; text-align: center; }
+        .big-icon { font-size: 3.2rem; opacity: 0.8; margin-right: 12px; vertical-align: middle; line-height: 1; }
+        .content-cell { display: flex; align-items: center; justify-content: center; padding: 8px 0; }
+        .amount-group { display: inline-flex; flex-direction: column; align-items: center; margin: 0px 8px; }
+        .amount-label { font-size: 0.6rem; color: #64748b; font-weight: bold; line-height: 1.2; }
+        .amount-input { border: none; border-bottom: 1px solid #e2e8f0; width: 85px; text-align: center; background: transparent; font-size: 0.9rem; font-weight: 600; color: #0f172a; height: 22px; }
+        .amount-input:focus { outline: none; border-bottom: 2px solid #38bdf8; }
+        .company-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; line-height: 1; }
+        .company-item { display: flex; align-items: center; font-size: 0.62rem; color: #475569; cursor: pointer; }
+        .company-item input { margin-right: 2px; transform: scale(0.7); }
+
+        /* 截圖模式 */
+        .screenshot-mode { background: #0f172a !important; padding: 10px !important; }
+        .screenshot-mode .no-print { display: none !important; }
+        .screenshot-mode td { background-color: #ffffff !important; }
+        .screenshot-mode td[colspan] { background-color: #f8fafc !important; } 
+        .screenshot-mode .risk-label { background-color: #f1f5f9 !important; }
+        .screenshot-mode #capture-area { border: none; padding: 15px; background: #fdfdfd; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .screenshot-mode .amount-input { border-bottom: none; font-weight: 800; color: #0284c7; }
+        .screenshot-mode .company-display { display: block !important; color: #1e293b; font-weight: 600; font-size: 0.65rem; background: #f1f5f9; padding: 4px; border-radius: 4px; border-left: 3px solid #0ea5e9; }
+    </style>
+</head>
+<body class="p-2 lg:p-4">
+
+    <div id="capture-area" class="max-w-[1100px] mx-auto bg-white p-4 rounded-xl border border-slate-200">
+        <div class="flex justify-between items-end mb-1 px-1">
+            <div class="w-1/3"></div>
+            <div class="w-1/3 text-center">
+                <h1 class="text-xl font-black text-slate-800 tracking-tight leading-none">個人人身保險保障盤點表</h1>
+                <p class="text-slate-400 text-[8px] mt-1 uppercase tracking-widest font-bold">Insurance Portfolio Analysis</p>
+            </div>
+            <div class="w-1/3 text-right">
+                <p id="current-time" class="text-slate-600 text-[9px] font-bold"></p>
+            </div>
+        </div>
+        
+        <table id="main-table">
+            <thead>
+                <tr class="stage-header">
+                    <th class="w-20 font-bold py-1.5 text-[0.75rem]">風險類別</th>
+                    <th class="py-1.5 text-[0.7rem]">1. 出生-出社會</th>
+                    <th class="py-1.5 text-[0.7rem]">2. 社會-成家</th>
+                    <th class="py-1.5 text-[0.7rem]">3. 成家-退休</th>
+                    <th class="py-1.5 text-[0.7rem]">4. 退休-身故</th>
+                    <th class="w-[220px] font-semibold text-[0.75rem]">投保保險公司</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-category="醫療險">
+                    <td class="risk-label">醫療支應</td>
+                    <td colspan="4" class="bg-cyan-50/20">
+                        <div class="content-cell">
+                            <span class="big-icon">🏥</span>
+                            <div class="text-center">
+                                <strong>醫療險</strong> <span class="text-[9px] text-slate-400">(住院、手術費、醫療雜費)</span><br>
+                                <div class="amount-group"><span class="amount-label">住院日額</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">門診手術費</span><span>$<input type="text" class="amount-input val-2" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">住院手術費</span><span>$<input type="text" class="amount-input val-3" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">醫療雜費</span><span>$<input type="text" class="amount-input val-4" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+                <tr data-category="癌症險">
+                    <td class="risk-label">癌症防護</td>
+                    <td colspan="3" class="bg-blue-50/20">
+                        <div class="content-cell">
+                            <span class="big-icon">🎗️</span>
+                            <div class="text-center">
+                                <strong>癌症險</strong><br>
+                                <div class="amount-group"><span class="amount-label">癌症保額</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">住院日額</span><span>$<input type="text" class="amount-input val-2" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-center text-slate-300 bg-slate-50 italic text-[9px]">自備準備金</td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+                <tr data-category="意外險">
+                    <td class="risk-label">意外風險</td>
+                    <td colspan="4" class="bg-green-50/20">
+                        <div class="content-cell">
+                            <span class="big-icon">⚠️</span>
+                            <div class="text-center">
+                                <strong>意外險</strong><br>
+                                <div class="amount-group"><span class="amount-label">意外保額</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">實支實付額度</span><span>$<input type="text" class="amount-input val-2" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">住院日額</span><span>$<input type="text" class="amount-input val-3" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+                <tr data-category="壽險">
+                    <td class="risk-label">基礎責任</td>
+                    <td colspan="3" class="bg-red-50/20">
+                        <div class="content-cell">
+                            <span class="big-icon">🏠</span>
+                            <div class="text-center">
+                                <strong>壽險</strong><br>
+                                <div class="amount-group"><span class="amount-label">保障金額</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="bg-slate-100"></td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+                <tr data-category="重大疾病險">
+                    <td class="risk-label">重大風險</td>
+                    <td class="bg-slate-100"></td>
+                    <td colspan="2" class="bg-purple-50/20">
+                        <div class="content-cell">
+                            <span class="big-icon">🩺</span>
+                            <div class="text-center">
+                                <strong>重大疾病險</strong><br>
+                                <div class="amount-group"><span class="amount-label">保障金額</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-center text-slate-300 bg-slate-50 italic text-[9px]">自備準備金</td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+                <tr data-category="資產配置">
+                    <td class="risk-label">資產配置</td>
+                    <td class="bg-slate-100"></td>
+                    <td colspan="3" class="bg-yellow-50/20">
+                        <div class="content-cell">
+                            <span class="big-icon">💰</span>
+                            <div class="text-center">
+                                <strong>投資型保單 / 年金</strong><br>
+                                <div class="amount-group"><span class="amount-label">目前價值</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+                <tr data-category="長期照顧險">
+                    <td class="risk-label">長期照護</td>
+                    <td class="bg-slate-100"></td>
+                    <td class="bg-slate-100"></td>
+                    <td colspan="2" class="bg-slate-50">
+                        <div class="content-cell">
+                            <span class="big-icon">👩‍🦽</span>
+                            <div class="text-center">
+                                <strong>長期照顧險/失能險</strong><br>
+                                <div class="amount-group"><span class="amount-label">每年給付</span><span>$<input type="text" class="amount-input val-1" placeholder="0"></span></div>
+                                <div class="amount-group"><span class="amount-label">殘廢安養(一筆)</span><span>$<input type="text" class="amount-input val-2" placeholder="0"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="company-grid no-print"></div><div class="company-display hidden"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="max-w-[1100px] mx-auto mt-4 flex flex-wrap justify-center gap-2 no-print">
+        <button onclick="document.getElementById('importFile').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-5 rounded-lg text-xs">📂 匯入</button>
+        <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls" onchange="importFromExcel(event)">
+        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-5 rounded-lg text-xs">📊 匯出</button>        
+        <button onclick="generateImage()" class="bg-slate-800 hover:bg-black text-white font-bold py-1.5 px-5 rounded-lg text-xs">📸 截圖</button>
+        <button onclick="window.location.reload()" class="bg-white border border-slate-300 text-slate-500 py-1.5 px-5 rounded-lg text-xs">重置</button>
+    </div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').innerText = `盤點：${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        }
+        updateTime();
+
+        const companies = ["國泰人壽", "富邦人壽", "南山人壽", "新光人壽", "台灣人壽", "三商美邦", "遠雄人壽", "全球人壽", "保誠人壽", "安聯人壽", "安達人壽", "友邦人壽", "國泰產險", "新光產險", "富邦產險"];
+
+        document.querySelectorAll('.company-grid').forEach(grid => {
+            companies.forEach(company => {
+                const label = document.createElement('label');
+                label.className = 'company-item';
+                label.innerHTML = `<input type="checkbox" value="${company}"> <span style="font-size:10px">${company}</span>`;
+                grid.appendChild(label);
+            });
+        });
+
+        function generateImage() {
+            updateTime();
+            document.querySelectorAll('.company-grid').forEach(grid => {
+                const display = grid.nextElementSibling;
+                const checked = Array.from(grid.querySelectorAll('input:checked')).map(i => i.value);
+                if (display) display.innerText = checked.length > 0 ? "已投保：" + checked.join('、') : '公司：未填';
+            });
+            document.body.classList.add('screenshot-mode');
+            window.scrollTo(0, 0);
+            setTimeout(() => {
+                document.body.onclick = function() {
+                    document.body.classList.remove('screenshot-mode');
+                    document.body.onclick = null;
+                };
+            }, 500);
+        }
+
+        // --- 修正後的匯出函式 ---
+        function exportToExcel() {
+            const data = [];
+            document.querySelectorAll('tbody tr').forEach(row => {
+                const category = row.getAttribute('data-category');
+                if (!category) return;
+                
+                // 動態抓取所有 val-x 的值
+                const rowData = { "險種項目": category };
+                const inputs = row.querySelectorAll('.amount-input');
+                inputs.forEach((input, index) => {
+                    rowData[`額度${index + 1}`] = input.value || "";
+                });
+                
+                const selectedCos = Array.from(row.querySelectorAll('.company-grid input:checked')).map(i => i.value).join(', ');
+                rowData["投保公司"] = selectedCos;
+                
+                data.push(rowData);
+            });
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "保險資料");
+            XLSX.writeFile(wb, `保險盤點表_${new Date().toLocaleDateString()}.xlsx`);
+        }
+
+        // --- 修正後的匯入函式 ---
+        function importFromExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                json.forEach(item => {
+                    const row = document.querySelector(`tr[data-category="${item['險種項目']}"]`);
+                    if (row) {
+                        // 動態填入所有額度
+                        for(let i=1; i<=4; i++) {
+                            const valInput = row.querySelector(`.val-${i}`);
+                            if (valInput) valInput.value = item[`額度${i}`] || "";
+                        }
+                        
+                        // 處理保險公司
+                        row.querySelectorAll('.company-grid input').forEach(cb => cb.checked = false);
+                        if (item['投保公司']) {
+                            item['投保公司'].split(', ').forEach(coName => {
+                                const cb = Array.from(row.querySelectorAll('.company-grid input')).find(c => c.value === coName);
+                                if (cb) cb.checked = true;
+                            });
+                        }
+                    }
+                });
+                updateTime();
+                alert("資料匯入成功！");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
